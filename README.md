@@ -257,7 +257,7 @@ This structure mirrors the kernel's layout, consolidated:
 | `Makefile`     | `Makefile`                | Build orchestration               |
 | `README.md`    | `README`                  | What is this                      |
 | `build/`       | `build/`                  | Output tree (root-level, FHS-like)|
-| `lib/`         | `lib/` `fs/` `net/` `mm/` | Code libraries                   |
+| `lib/`         | `lib/` `fs/` `net/` `mm/` | Code libraries                    |
 | `cmd/`         | `init/main.c`             | Entry points                      |
 | `api/`         | `include/`                | Contracts between components      |
 | `arch/`        | `arch/`                   | Platform-specific implementations |
