@@ -1,49 +1,66 @@
-adapters/
+# adapters/
+
 Thin translation layers between external tools, services, and APIs and our own
 abstractions, names, and conventions.
-Purpose
+
+## Purpose
+
 Each subdirectory here wraps a piece of external machinery — a CI system, a
 cloud CLI, a configuration management tool, a device API — and re-exposes it
 through our internal vocabulary. Callers elsewhere in the codebase should not
 need to know the foreign tool's terminology, flags, or quirks; they interact
 with our abstractions, and the adapter does the translation.
-The name follows the ports-and-adapters (hexagonal architecture) sense:
-our side defines the shape it wants; the adapter implements that shape against
+
+The name follows the ports-and-adapters (hexagonal architecture) sense: our
+side defines the shape it wants; the adapter implements that shape against
 whatever the outside world actually provides.
-What belongs here
 
-Wrappers around third-party CLIs (az, gh, ansible-playbook, skopeo, ...)
-GitHub Actions / CI glue that drives external tools on our behalf
-API clients that map foreign resource models onto our domain model
-Shims that normalize behavior across platforms or tool versions
+## What belongs here
 
-What does not belong here
+- Wrappers around third-party CLIs (`az`, `gh`, `ansible-playbook`, `skopeo`, ...)
+- GitHub Actions / CI glue that drives external tools on our behalf
+- API clients that map foreign resource models onto our domain model
+- Shims that normalize behavior across platforms or tool versions
 
-Pure business logic or domain code — that lives alongside the abstractions
-the adapters serve, not here
-Standalone utilities with no external dependency to adapt
-Generic helpers (logging, config parsing, retries) — those go in shared
-libraries, not under an adapter
+## What does not belong here
 
-Layout
-Adapters are grouped by category, where the category is the interface
-they implement on our side. Each category directory holds one subdirectory
-per external implementation:
+- Pure business logic or domain code — that lives alongside the abstractions
+  the adapters serve, not here
+- Standalone utilities with no external dependency to adapt
+- Generic helpers (logging, config parsing, retries) — those go in shared
+  libraries, not under an adapter
+
+## Layout
+
+Adapters are grouped by category, where the category is the interface they
+implement on our side. Each category directory holds one subdirectory per
+external implementation:
+
+```
 adapters/
   <category>/                 # our interface (e.g. runner, provisioner)
     <external-system>/        # one adapter per external backend
       README.md
       ...
+```
+
 When an adapter bridges two external systems — for example, an Ansible
 playbook that drives GitHub Actions — the directory name encodes both, in
-<caller>-<backend> order (the caller is whichever side we invoke first;
-the backend is what ends up doing the work through it):
+`<caller>-<backend>` order (the caller is whichever side we invoke first; the
+backend is what ends up doing the work through it):
+
+```
 adapters/runner/ansible-github-actions/
+```
+
 Read it as: "inside the runner category, the adapter where Ansible drives
 GitHub Actions." The category tells you which interface is satisfied; the
 directory name tells you what external parts are involved and in which
 direction.
-Example tree
+
+## Example tree
+
+```
 adapters/
   runner/
     ansible-github-actions/        # Ansible driving GitHub Actions workflows
@@ -66,50 +83,55 @@ adapters/
     ansible-vault/
     azure-key-vault/
     hashicorp-vault/
+```
+
 Multiple adapters in the same category are expected and encouraged — that is
-the point of having the category. Callers depend on the interface
-(Runner, Provisioner, ...) and are agnostic to which subdirectory
-actually backs it at runtime.
-Relation to arch/
+the point of having the category. Callers depend on the interface (`Runner`,
+`Provisioner`, ...) and are agnostic to which subdirectory actually backs it
+at runtime.
+
+## Relation to `arch/`
+
 Adapters are non-exclusive: many adapters in the same category coexist in the
 same build, and callers pick between them at runtime or by configuration. This
-is the opposite of arch/, where a single implementation is chosen per build
-and the others are not supported in that build's output. Switching archs
-means rebuilding; switching adapters does not.
-If the implementations you are adding are mutually exclusive per build
-(one target, one backend, rebuild to switch), they belong under arch/, not
-here.
-Picking a category name
+is the opposite of `arch/`, where a single implementation is chosen per build
+and the others are not supported in that build's output. Switching archs means
+rebuilding; switching adapters does not.
 
-Use the singular noun form of the interface (runner, not runners;
-image-store, not image-stores).
-Use kebab-case for multi-word categories so directory names stay shell-
-friendly across the codebase.
-If you are about to add an adapter and no category fits, stop and define
-the interface first. Adapters without a category signal that the domain
-side has not decided what contract it wants.
+If the implementations you are adding are mutually exclusive per build (one
+target, one backend, rebuild to switch), they belong under `arch/`, not here.
 
-Other conventions
+## Picking a category name
 
-The adapter's public surface uses our names for things. Foreign
-terminology (their resource IDs, flag names, enum values) stays inside the
-adapter and is translated at the boundary.
-Keep adapters thin. If an adapter starts accumulating business rules, the
-rules belong on the inside of the hexagon, not here.
-Each adapter should be independently testable against a fake or recorded
-fixture of the external system so the rest of the codebase can be tested
-without touching the real thing.
+- Use the singular noun form of the interface (`runner`, not `runners`;
+  `image-store`, not `image-stores`).
+- Use kebab-case for multi-word categories so directory names stay
+  shell-friendly across the codebase.
+- If you are about to add an adapter and no category fits, stop and define the
+  interface first. Adapters without a category signal that the domain side has
+  not decided what contract it wants.
 
-Adding a new adapter
+## Other conventions
 
-Decide which category (interface) the adapter belongs to. If none fits,
-define the interface first — the interface lives with the domain code,
-not under adapters/. Then create the category directory here.
-Create adapters/<category>/<external-system>/ (or
-adapters/<category>/<caller>-<backend>/ if the adapter bridges two
-external systems) with a short README.md describing: which external
-system(s) it wraps, which version(s) it targets, and the mapping between
-their names and ours.
-Write the adapter to satisfy the category's interface.
-Add fixtures or a fake sufficient for tests elsewhere in the tree to run
-without network or external binaries.
+- The adapter's public surface uses our names for things. Foreign terminology
+  (their resource IDs, flag names, enum values) stays inside the adapter and
+  is translated at the boundary.
+- Keep adapters thin. If an adapter starts accumulating business rules, the
+  rules belong on the inside of the hexagon, not here.
+- Each adapter should be independently testable against a fake or recorded
+  fixture of the external system so the rest of the codebase can be tested
+  without touching the real thing.
+
+## Adding a new adapter
+
+1. Decide which category (interface) the adapter belongs to. If none fits,
+   define the interface first — the interface lives with the domain code, not
+   under `adapters/`. Then create the category directory here.
+2. Create `adapters/<category>/<external-system>/` (or
+   `adapters/<category>/<caller>-<backend>/` if the adapter bridges two
+   external systems) with a short `README.md` describing: which external
+   system(s) it wraps, which version(s) it targets, and the mapping between
+   their names and ours.
+3. Write the adapter to satisfy the category's interface.
+4. Add fixtures or a fake sufficient for tests elsewhere in the tree to run
+   without network or external binaries.
