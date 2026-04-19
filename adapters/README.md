@@ -70,6 +70,15 @@ Multiple adapters in the same category are expected and encouraged — that is
 the point of having the category. Callers depend on the interface
 (Runner, Provisioner, ...) and are agnostic to which subdirectory
 actually backs it at runtime.
+Relation to arch/
+Adapters are non-exclusive: many adapters in the same category coexist in the
+same build, and callers pick between them at runtime or by configuration. This
+is the opposite of arch/, where a single implementation is chosen per build
+and the others are not supported in that build's output. Switching archs
+means rebuilding; switching adapters does not.
+If the implementations you are adding are mutually exclusive per build
+(one target, one backend, rebuild to switch), they belong under arch/, not
+here.
 Picking a category name
 
 Use the singular noun form of the interface (runner, not runners;
